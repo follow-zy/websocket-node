@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- 引入样式 -->
+    <!-- <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css"> -->
+    <!-- 引入组件库 -->
+    <!-- <script src="https://unpkg.com/element-ui/lib/index.js"></script> -->
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        html,body,#app{
+            width:100%;
+            height: 100%;
+        }
+        #app{
+            display: flex;
+            flex-direction: column;
+        }
+        .top{
+            height: 50px;
+            background-color: rgb(76, 188, 236);
+            text-align: center;
+            line-height: 50px;
+            font-size: 20px;
+        }
+        .content{
+            flex: 1;
+            overflow: auto;
+        }
+        .bottom{
+            height: 80px;
+            background-color: rgb(76, 188, 236);
+            line-height: 80px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .input{
+            font-size: 16px;
+            height: 30px;
+            border: 0;
+            border-radius: 15px;
+            width:250px;
+            padding: 2 10px; 
+            word-break: break-all;
+        }
+        .submit{
+            border: 0;
+            height: 30px;
+            line-height: 30px;
+            width: 70px;
+            border-radius: 15px;
+            background-color: rgb(22, 134, 204);
+            color: white;
+        }
+        .left{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .right{
+            display: flex;
+            flex-direction: column;
+        }
+        .text{
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: cadetblue;
+            color: black;
+            border-radius: 3px;
+            word-break: break-word;
+        }
+        span{
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="top">
+            人数{{userNum}}
+        </div>
+        <div class="content">
+            <div v-if='list.length'>
+                <div v-for='(item,index) in list' :key=index>
+                    <div v-if='num==item.id && item.id' style="display:flex;justify-content: flex-end;">
+                        <div class='right'>
+                            <span>{{item.name}}</span>
+                            <span class="text">{{item.content}}</span>
+                        </div>
+                        <img src="./default.png" width="40px" height="40px"/>
+                    </div>
+                    <div v-if='num!=item.id && item.id' style="display:flex;justify-content: flex-start;">
+                        <img src="./default.png" width="40px" height="40px"/>
+                        <div class='left'>
+                            <span>{{item.name}}</span>
+                            <span class="text">{{item.content}}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class='bottom'>
+            <input v-model='value' class="input" />
+            <button @click="Send()" class="submit">发送</button>
+            <input type="file" @input="sendFile($event)"/>
+        </div>
+    </div>
+    <script>
+        new Vue({
+            el:"#app",
+            data(){
+                return{
+                    list:[],
+                    num:'',
+                    value:'',
+                    ws:null,
+                    name:'',
+                    userNum:'',
+                    ws:null
+                }
+            },
+            mounted(){
+                if(window.WebSocket){
+                    this.ws = new WebSocket("ws://192.168.3.243:9000");
+                    this.ws.onopen = (e) => {
+                        console.log("服务器连接成功",e);  
+                    };
+                    this.ws.onmessage  = (e) => {
+                            console.log(JSON.parse(e.data));
+                            let data = JSON.parse(e.data)
+                            if(data.userNum){
+                                this.userNum = data.userNum //游客人数/同时以此值作为游客id
+                                if(!window.sessionStorage.getItem('id')){
+                                    window.sessionStorage.setItem('id',data.userNum)
+                                }
+                            }
+                            this.num = window.sessionStorage.getItem('id')
+                            this.list.push(data)
+                    };
+                    this.ws.onclose = (e) => {
+                        console.log("服务器连接关闭");
+                        this.list = []
+                        window.sessionStorage.clear()
+                    };
+                    this.ws.onerror = () => {
+                        console.log("服务器连接出错");
+                        window.sessionStorage.clear()
+                    };
+                }
+            },
+            methods:{
+                Send(){
+                    let id = window.sessionStorage.getItem('id')
+                    if(this.value){
+                        this.ws.send(JSON.stringify({id:id,name:'游客'+id,content:this.value}))
+                    }
+                },
+                sendFile(event){
+                    console.log(event.target.files[0])
+                    let id = window.sessionStorage.getItem('id')
+                    var file=e.target.files[0]
+                    var filesize=file.size;
+                    var reader=new FileReader();
+                    //reader.readAsBinaryString(file);
+                    //这里可以通过slice函数，对文件进行分割，多次传送
+                    var blob=file.slice(0,filesize);
+                    reader.readAsArrayBuffer(blob);
+                    
+                    reader.onload = (e) => {
+                        var arrBuf=e.target.result;
+                        this.ws.send(JSON.stringify({id:id,name:'游客'+id,content:this.value || '',file:arrBuf}))
+                        // oWs.send(arrBuf);
+                    };
+                }
+            }
+        })
+    </script> 
+</body>
+</html>
