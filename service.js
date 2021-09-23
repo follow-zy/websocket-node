@@ -36,5 +36,5 @@ wss.on('connection', function (ws) {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(3001,(res)=>{
-    console.log('服务器创建成功')
+    console.log('服务器创建成功:请在浏览器打开localhost:3001/index.html')
 })

@@ -129,7 +129,7 @@
             },
             mounted(){
                 if(window.WebSocket){
-                    this.ws = new WebSocket("ws://192.168.3.243:9000");
+                    this.ws = new WebSocket("ws://localhost:9000");
                     this.ws.onopen = (e) => {
                         console.log("服务器连接成功",e);  
                     };
